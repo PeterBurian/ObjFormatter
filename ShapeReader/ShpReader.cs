@@ -99,6 +99,8 @@ namespace ShapeReader
         {
             if (geometries != null)
             {
+                int nIndex = 0;
+
                 for (int i = 0; i < geometries.Length; i++)
                 {
                     List<Tuple<int, int, int>> faceLst = new List<Tuple<int, int, int>>();
@@ -109,23 +111,29 @@ namespace ShapeReader
                     if (geom.GeometryType == "Polygon")
                     {
                         Triangulator2D triangulator = new Triangulator2D(geom.Coordinates);
-                        List<List<Coordinate>> coordinates = triangulator.TriangulateFace();
+                        List<List<Coordinate>> triangles = triangulator.TriangulateFace();
 
                         //Add normals
-                        int nIndex = 0;
-                        foreach (List<Coordinate> triangle in coordinates)
+                        foreach (List<Coordinate> triangle in triangles)
                         {
-                            for (int j = 0; j < 3; i++)
+                            for (int j = 0; j < 3; j++)
                             {
                                 int nextIdx = (j + 1) % 3;
                                 int prevIdx = (j + 3 - 1) % 3;
 
-                                Vector3 current = GetVector(triangle[j]);
-                                Vector3 prev = GetVector(triangle[prevIdx]);
-                                Vector3 next = GetVector(triangle[nextIdx]);
+                                Vector3 currVec = GetV3FromV2(triangle[j]);
+                                Vector3 prevVec = GetV3FromV2(triangle[prevIdx]);
+                                Vector3 nextVec = GetV3FromV2(triangle[nextIdx]);
 
-                                Vector3 cross = Vector3.Cross(next - current, prev - current);
+                                Vector3 cross = Vector3.Cross(nextVec - currVec, prevVec - currVec);
                                 cross = Vector3.Normalize(cross);
+
+                                //Vector3 current = GetVector(triangle[j]);
+                                //Vector3 prev = GetVector(triangle[prevIdx]);
+                                //Vector3 next = GetVector(triangle[nextIdx]);
+
+                                //Vector3 cross = Vector3.Cross(next - current, prev - current);
+                                //cross = Vector3.Normalize(cross);
 
                                 normals.Add(nIndex++, cross);
                             }
@@ -162,6 +170,22 @@ namespace ShapeReader
                 }
             }
             return -1;
+        }
+
+        private Vector3 GetV3FromV2(Coordinate coordinate)
+        {
+            float corX = (float)coordinate.X;
+            float corY = (float)coordinate.Y;
+
+            foreach (KeyValuePair<int, Vector3> item in points)
+            {
+                //I hope there is no inconsistence in shp and the coordinates in the list and in the geoms are the same
+                if (item.Value.X == corX && item.Value.Y == corY)
+                {
+                    return new Vector3((float)item.Value.X, (float)item.Value.Y, (float)item.Value.Z);
+                }
+            }
+            return Vector3.Zero;
         }
 
         private Vector3 GetVector(Coordinate coordinate)
