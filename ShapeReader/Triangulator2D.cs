@@ -19,10 +19,23 @@ namespace ShapeReader
             }
         }
 
-        public void TriangulateFace() 
+        public List<List<Coordinate>> TriangulateFace() 
         {
+            List<List<Coordinate>> triangles = new List<List<Coordinate>>();
+
             Delaunator delaunator = new Delaunator(face);
-            List<ITriangle> triangles = delaunator.GetTriangles().ToList();
+            foreach (ITriangle item in delaunator.GetTriangles())
+            {
+                List<Coordinate> coors = new List<Coordinate>();
+
+                foreach (IPoint point in item.Points)
+                {
+                    Coordinate coordinate = new Coordinate(point.X, point.Y);
+                    coors.Add(coordinate);
+                }
+                triangles.Add(coors);
+            }
+            return triangles;
         }
 
         public class PointAdapter : IPoint
@@ -39,11 +52,7 @@ namespace ShapeReader
                 this.y = y;
             }
 
-            public PointAdapter(Coordinate coordinate)
-            {
-                x = coordinate.X;
-                y = coordinate.Y;
-            }
+            public PointAdapter(Coordinate coordinate) : this(coordinate.X, coordinate.Y) { }
 
             public static implicit operator PointAdapter(Coordinate c) => new PointAdapter(c);
         }

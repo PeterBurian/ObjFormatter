@@ -19,11 +19,15 @@ namespace ShapeReader
 
         private Dictionary<int, Vector3> points;
 
+        private readonly Dictionary<int, Vector3> normals;
+
         private List<List<Tuple<int, int, int>>> faces;
         
         Vector3 Center => center;
 
         List<Vector3> Points => points.Values.ToList();
+
+        List<Vector3> Normals => normals.Values.ToList();
 
         List<List<Tuple<int, int, int>>> Faces => faces;
 
@@ -33,6 +37,7 @@ namespace ShapeReader
             this.source = source;
 
             points = new Dictionary<int, Vector3>();
+            normals = new Dictionary<int, Vector3>();
             faces = new List<List<Tuple<int, int, int>>>();
         }
 
@@ -55,7 +60,6 @@ namespace ShapeReader
 
                         //Set faces
                         ReadFaces(geometry.Geometries);
-                        int stop = 0;
                     }
                     else
                     {
@@ -104,6 +108,29 @@ namespace ShapeReader
                     //Read the polygons only 
                     if (geom.GeometryType == "Polygon")
                     {
+                        Triangulator2D triangulator = new Triangulator2D(geom.Coordinates);
+                        List<List<Coordinate>> coordinates = triangulator.TriangulateFace();
+
+                        //Add normals
+                        int nIndex = 0;
+                        foreach (List<Coordinate> triangle in coordinates)
+                        {
+                            for (int j = 0; j < 3; i++)
+                            {
+                                int nextIdx = (j + 1) % 3;
+                                int prevIdx = (j + 3 - 1) % 3;
+
+                                Vector3 current = GetVector(triangle[j]);
+                                Vector3 prev = GetVector(triangle[prevIdx]);
+                                Vector3 next = GetVector(triangle[nextIdx]);
+
+                                Vector3 cross = Vector3.Cross(next - current, prev - current);
+                                cross = Vector3.Normalize(cross);
+
+                                normals.Add(nIndex++, cross);
+                            }
+                        }
+
                         for (int j = 0; j < geom.Coordinates.Length; j++)
                         {
                             Coordinate coordinate = geom.Coordinates[j];
@@ -113,9 +140,7 @@ namespace ShapeReader
                             faceLst.Add(facePart);
                         }
 
-                        Triangulator2D triangulator = new Triangulator2D(geom.Coordinates);
-                        triangulator.TriangulateFace();
-
+                        
                     }
                     faces.Add(faceLst);
                 }
